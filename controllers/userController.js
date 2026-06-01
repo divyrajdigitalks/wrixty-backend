@@ -53,7 +53,7 @@ const getUser = async (req, res) => {
 // @route   POST /api/users
 const createUser = async (req, res) => {
   try {
-    const { name, email, password, mobile_number, company_number, aadhar_card, check_photo, bank_number, roles } = req.body;
+    const { name, email, password, mobile_number, company_number, aadhar_card, bank_number, roles } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, email and password are required' });
@@ -65,6 +65,15 @@ const createUser = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
+    let fileUrl = req.body.check_photo || '';
+    if (req.file) {
+      const { uploadToExternalAPI } = require('../middlewares/uploadMiddleware');
+      const uploadedUrl = await uploadToExternalAPI(req.file, 'wrixty', 'users');
+      if (uploadedUrl) {
+        fileUrl = uploadedUrl;
+      }
+    }
+
     const user = await User.create({
       name,
       email,
@@ -72,9 +81,9 @@ const createUser = async (req, res) => {
       mobile_number,
       company_number,
       aadhar_card,
-      check_photo,
+      check_photo: fileUrl,
       bank_number,
-      roles: roles || []
+      roles: roles ? (Array.isArray(roles) ? roles : [roles]) : []
     });
 
     res.status(201).json(user);
@@ -94,6 +103,22 @@ const updateUser = async (req, res) => {
     const updateData = { ...req.body };
     if (!updateData.password) {
       delete updateData.password;
+    }
+
+    if (req.file) {
+      const { uploadToExternalAPI, deleteFromExternalAPI } = require('../middlewares/uploadMiddleware');
+      const uploadedUrl = await uploadToExternalAPI(req.file, 'wrixty', 'users');
+      if (uploadedUrl) {
+        updateData.check_photo = uploadedUrl;
+        if (user.check_photo) {
+          deleteFromExternalAPI(user.check_photo).catch(err => console.error(err));
+        }
+      }
+    }
+
+    // Make sure roles is formatted correctly if it comes as non-array
+    if (updateData.roles && !Array.isArray(updateData.roles)) {
+      updateData.roles = [updateData.roles];
     }
 
     const updated = await User.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true }).select('-password');

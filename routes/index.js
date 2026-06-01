@@ -10,6 +10,7 @@ const roleRoutes = require('./roleRoutes');
 const teamRoutes = require('./teamRoutes');
 const authRoutes = require('./authRoutes');
 const courierRoutes = require('./courierRoutes');
+const uploadRoutes = require('./uploadRoutes');
 
 // Mount routes
 router.use('/users', userRoutes);
@@ -21,6 +22,7 @@ router.use('/roles', roleRoutes);
 router.use('/teams', teamRoutes);
 router.use('/auth', authRoutes);
 router.use('/couriers', courierRoutes);
+router.use('/upload', uploadRoutes);
 
 // Future routes can be added here, e.g.:
 // router.use('/leads', require('./leadRoutes'));

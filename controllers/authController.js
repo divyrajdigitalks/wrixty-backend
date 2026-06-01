@@ -1,6 +1,17 @@
 const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
 
+// Generate JWT Token Helper
+const generateToken = (id, email, roles) => {
+  return jwt.sign(
+    { id, email, roles },
+    process.env.JWT_SECRET || 'wrixtysecret123',
+    { expiresIn: process.env.JWT_EXPIRE || '1d' }
+  );
+};
+
+const Role = require('../models/roleModel');
+
 // @desc    Auth user & get token
 // @route   POST /api/auth/login
 const loginUser = async (req, res) => {
@@ -11,18 +22,24 @@ const loginUser = async (req, res) => {
     }
     const user = await User.findOne({ email });
     if (user && user.password === password) {
-      // Generate token
-      const token = jwt.sign(
-        { id: user._id, email: user.email, roles: user.roles },
-        process.env.JWT_SECRET || 'wrixtysecret123',
-        { expiresIn: '30d' }
-      );
+      // Fetch the roles' permissions
+      const roleDocs = await Role.find({ name: { $in: user.roles } });
+      let permissions = {};
+      roleDocs.forEach(r => {
+        if (r.permissions) {
+          permissions = { ...permissions, ...r.permissions };
+        }
+      });
+
+      // Generate token using helper
+      const token = generateToken(user._id, user.email, user.roles);
 
       res.status(200).json({
         _id: user._id,
         name: user.name,
         email: user.email,
         roles: user.roles,
+        permissions: permissions,
         token: token
       });
     } else {
