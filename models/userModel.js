@@ -13,6 +13,25 @@ const userSchema = mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Please add a password']
+  },
+  mobile_number: {
+    type: String,
+  },
+  company_number: {
+    type: String,
+  },
+  aadhar_card: {
+    type: String,
+  },
+  check_photo: {
+    type: String,
+  },
+  bank_number: {
+    type: String,
+  },
+  roles: {
+    type: [String],
+    default: []
   }
 }, {
   timestamps: true
