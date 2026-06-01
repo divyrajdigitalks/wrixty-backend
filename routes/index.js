@@ -25,6 +25,10 @@ router.use('/couriers', courierRoutes);
 router.use('/upload', uploadRoutes);
 
 // Future routes can be added here, e.g.:
-// router.use('/leads', require('./leadRoutes'));
+const leadRoutes = require('./leadRoutes');
+router.use('/leads', leadRoutes);
+
+const orderRoutes = require('./orderRoutes');
+router.use('/orders', orderRoutes);
 
 module.exports = router;
