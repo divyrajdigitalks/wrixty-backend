@@ -27,11 +27,13 @@ router.use('/upload', uploadRoutes);
 const customerRoutes = require('./customerRoutes');
 router.use('/customers', customerRoutes);
 
-// Future routes can be added here, e.g.:
 const leadRoutes = require('./leadRoutes');
 router.use('/leads', leadRoutes);
 
 const orderRoutes = require('./orderRoutes');
 router.use('/orders', orderRoutes);
+
+const activityLogRoutes = require('./activityLogRoutes');
+router.use('/activity-logs', activityLogRoutes);
 
 module.exports = router;

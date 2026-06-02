@@ -1,5 +1,6 @@
 const Order = require('../models/orderModel');
 const Lead = require('../models/leadModel');
+const ActivityLog = require('../models/activityLogModel');
 
 // @desc    Get all orders
 // @route   GET /api/orders
@@ -51,6 +52,16 @@ const getOrders = async (req, res) => {
 const createOrder = async (req, res) => {
   try {
     const order = await Order.create(req.body);
+
+    if (req.user) {
+      await ActivityLog.create({
+        user: req.user._id,
+        lead: order.leadId || null,
+        action: 'Convert To Order',
+        message: 'Lead Convert To Order successfully'
+      });
+    }
+
     res.status(201).json(order);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -65,10 +76,22 @@ const updateOrder = async (req, res) => {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
+    const statusChanged = req.body.status && req.body.status.toString() !== (order.status ? order.status.toString() : '');
+
     const updated = await Order.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
     });
+
+    if (req.user) {
+      await ActivityLog.create({
+        user: req.user._id,
+        lead: updated.leadId || null,
+        action: statusChanged ? 'Status Change' : 'Update',
+        message: statusChanged ? 'Lead Status Two Change successfully' : 'Order updated successfully'
+      });
+    }
+
     res.status(200).json(updated);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -84,6 +107,16 @@ const deleteOrder = async (req, res) => {
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
     await Order.findByIdAndUpdate(req.params.id, { isDeleted: true, deleteDate: new Date() });
+
+    if (req.user) {
+      await ActivityLog.create({
+        user: req.user._id,
+        lead: order.leadId || null,
+        action: 'Delete',
+        message: 'Order deleted successfully'
+      });
+    }
+
     res.status(200).json({ message: 'Order deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

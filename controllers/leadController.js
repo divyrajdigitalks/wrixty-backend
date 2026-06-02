@@ -1,5 +1,7 @@
 const Lead = require('../models/leadModel');
 const Customer = require('../models/customerModel');
+const ActivityLog = require('../models/activityLogModel');
+
 
 // @desc    Get all leads
 // @route   GET /api/leads
@@ -107,6 +109,17 @@ const createLead = async (req, res) => {
 
     const payload = { ...rest, customer: customerId };
     const lead = await Lead.create(payload);
+
+    // Create activity log
+    if (req.user) {
+      await ActivityLog.create({
+        user: req.user._id,
+        lead: lead._id,
+        action: 'Create',
+        message: 'Lead Created successfully'
+      });
+    }
+
     res.status(201).json(lead);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -126,6 +139,9 @@ const updateLead = async (req, res) => {
     const { name, phone_number, ...rest } = req.body;
     let payload = { ...rest };
 
+    const statusChanged = req.body.status && req.body.status.toString() !== (lead.status ? lead.status.toString() : '');
+    const orderStatusChanged = req.body.orderStatus !== undefined && req.body.orderStatus !== lead.orderStatus;
+
     if (name && phone_number) {
       let existingCustomer = await Customer.findOne({ phone_number });
       if (!existingCustomer) {
@@ -138,6 +154,26 @@ const updateLead = async (req, res) => {
     }
 
     const updated = await Lead.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true });
+
+    if (req.user) {
+      let action = 'Update';
+      let logMsg = 'Lead Edited successfully';
+      if (statusChanged) {
+        action = 'Status Change';
+        logMsg = 'Lead Status Change successfully';
+      } else if (orderStatusChanged) {
+        action = 'Convert To Order';
+        logMsg = 'Lead Convert To Order successfully';
+      }
+
+      await ActivityLog.create({
+        user: req.user._id,
+        lead: updated._id,
+        action,
+        message: logMsg
+      });
+    }
+
     res.status(200).json(updated);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -154,6 +190,16 @@ const deleteLead = async (req, res) => {
       return res.status(404).json({ message: 'Lead not found' });
     }
     await Lead.findByIdAndUpdate(req.params.id, { isDeleted: true, deleteDate: new Date() }, { new: true });
+
+    if (req.user) {
+      await ActivityLog.create({
+        user: req.user._id,
+        lead: lead._id,
+        action: 'Delete',
+        message: 'Lead Deleted successfully'
+      });
+    }
+
     res.status(200).json({ message: 'Lead deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
