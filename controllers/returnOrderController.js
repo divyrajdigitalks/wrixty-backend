@@ -83,4 +83,51 @@ const deleteReturnOrder = async (req, res) => {
   }
 };
 
-module.exports = { getReturnOrders, createReturnOrder, updateReturnOrder, deleteReturnOrder };
+// @desc    Get return order by ID
+// @route   GET /api/return-orders/:id
+// @access  Public
+const getReturnOrderById = async (req, res) => {
+  try {
+    const returnOrder = await ReturnOrder.findById(req.params.id)
+      .populate('assginTo', 'name')
+      .populate('orderId');
+      
+    if (!returnOrder) return res.status(404).json({ message: 'Return order not found' });
+    
+    res.status(200).json(returnOrder);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get staff return order stats
+// @route   GET /api/return-orders/stats/staff
+// @access  Public
+const getStaffReturnStats = async (req, res) => {
+  try {
+    const User = require('../models/userModel');
+    const users = await User.find({ isDeleted: { $ne: true } }).select('_id name');
+    
+    const returnOrders = await ReturnOrder.aggregate([
+      { $match: { isDeleted: { $ne: true } } },
+      { $group: { _id: "$assginTo", returns: { $sum: 1 } } }
+    ]);
+
+    const returnMap = {};
+    returnOrders.forEach(ro => {
+      if (ro._id) returnMap[ro._id.toString()] = ro.returns;
+    });
+
+    const stats = users.map(user => ({
+      id: user._id,
+      name: user.name,
+      returns: returnMap[user._id.toString()] || 0
+    }));
+
+    res.status(200).json(stats);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getReturnOrders, getReturnOrderById, createReturnOrder, updateReturnOrder, deleteReturnOrder, getStaffReturnStats };
