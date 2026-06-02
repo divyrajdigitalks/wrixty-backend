@@ -9,6 +9,7 @@ const Product = require('./models/productModel');
 const Status = require('./models/statusModel');
 const ReturnOrderType = require('./models/returnOrderTypeModel');
 const ReasonToCall = require('./models/reasonToCallModel');
+const { encryptPassword } = require('./utils/cryptoUtils');
 
 const seedDB = async () => {
   try {
@@ -58,7 +59,7 @@ const seedDB = async () => {
       {
         name: 'Admin',
         email: 'admin@gmail.com',
-        password: '12345678',
+        password: encryptPassword('12345678'),
         mobile_number: '9876543210',
         company_number: 'WRIX-001',
         aadhar_card: '123456789012',
@@ -68,7 +69,7 @@ const seedDB = async () => {
       {
         name: 'Aman Sharma',
         email: 'aman@wrixty.com',
-        password: '12345678',
+        password: encryptPassword('12345678'),
         mobile_number: '9000011111',
         company_number: 'WRIX-002',
         aadhar_card: '987654321098',

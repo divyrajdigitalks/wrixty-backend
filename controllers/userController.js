@@ -1,4 +1,5 @@
 const User = require('../models/userModel');
+const { encryptPassword, decryptPassword } = require('../utils/cryptoUtils');
 
 // @desc    Get all users (with pagination & search)
 // @route   GET /api/users
@@ -41,9 +42,15 @@ const getUsers = async (req, res) => {
 // @route   GET /api/users/:id
 const getUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
+    const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
-    res.status(200).json(user);
+    
+    const userObj = user.toObject();
+    if (userObj.password) {
+      userObj.password = decryptPassword(userObj.password);
+    }
+    
+    res.status(200).json(userObj);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -77,7 +84,7 @@ const createUser = async (req, res) => {
     const user = await User.create({
       name,
       email,
-      password, // Plain text for demo; hash in production!
+      password: encryptPassword(password),
       mobile_number,
       company_number,
       aadhar_card,
@@ -103,6 +110,8 @@ const updateUser = async (req, res) => {
     const updateData = { ...req.body };
     if (!updateData.password) {
       delete updateData.password;
+    } else {
+      updateData.password = encryptPassword(updateData.password);
     }
 
     if (req.file) {
@@ -150,7 +159,7 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: 'Please provide email and password' });
     }
     const user = await User.findOne({ email });
-    if (user && user.password === password) {
+    if (user && decryptPassword(user.password) === password) {
       res.status(200).json({
         _id: user._id,
         name: user.name,
