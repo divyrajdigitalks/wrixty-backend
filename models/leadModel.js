@@ -4,7 +4,8 @@ const leadProductSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
   name: { type: String },
   amount: { type: Number },
-  quantity: { type: Number, default: 1 }
+  quantity: { type: Number, default: 1 },
+  subtotal: { type: Number }
 }, { _id: false });
 
 const leadSchema = mongoose.Schema({
@@ -21,10 +22,7 @@ const leadSchema = mongoose.Schema({
     type: [leadProductSchema],
     default: []
   },
-  // Kept for backward compat / display
-  product: { type: String },
-  amount: { type: Number },
-  quantity: { type: Number },
+  // Kept for backward compat / display (REMOVED as requested)
   // Store IDs for relational fields
   assgin: {
     type: mongoose.Schema.Types.ObjectId,

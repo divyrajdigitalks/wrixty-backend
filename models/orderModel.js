@@ -4,7 +4,8 @@ const orderProductSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
   name: { type: String },
   amount: { type: Number },
-  quantity: { type: Number, default: 1 }
+  quantity: { type: Number, default: 1 },
+  subtotal: { type: Number }
 }, { _id: false });
 
 const orderSchema = mongoose.Schema({
@@ -24,10 +25,7 @@ const orderSchema = mongoose.Schema({
     type: [orderProductSchema],
     default: []
   },
-  // Kept for display
-  product: { type: String },
-  amount: { type: Number },
-  quantity: { type: Number },
+  // Kept for display (REMOVED as requested)
   grandTotal: { type: Number },
   paymentType: {
     type: String,

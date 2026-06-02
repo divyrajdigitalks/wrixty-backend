@@ -6,11 +6,15 @@ const Lead = require('../models/leadModel');
 // @access  Public
 const getOrders = async (req, res) => {
   try {
-    const { page = 1, limit = 100, search = '' } = req.query;
+    const { page = 1, limit = 100, search = '', assginTo, status, courier, product } = req.query;
     const query = {
       isDeleted: { $ne: true },
       ...(search ? { name: { $regex: search, $options: 'i' } } : {})
     };
+    if (assginTo) query.assginTo = assginTo;
+    if (status) query.status = status;
+    if (courier) query.courier = courier;
+    if (product) query['products.productId'] = product;
 
     const orders = await Order.find(query)
       .populate('assginTo', 'name')

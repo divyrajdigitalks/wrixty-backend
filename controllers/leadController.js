@@ -5,13 +5,20 @@ const Lead = require('../models/leadModel');
 // @access  Public
 const getLeads = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = '' } = req.query;
+    const { page = 1, limit = 10, search = '', assgin, status, reason_call, product } = req.query;
     const query = {
       isDeleted: { $ne: true },
       ...(search ? { name: { $regex: search, $options: 'i' } } : {})
     };
+    if (assgin) query.assgin = assgin;
+    if (status) query.status = status;
+    if (reason_call) query.reason_call = reason_call;
+    if (product) query['products.productId'] = product;
     
     const leads = await Lead.find(query)
+      .populate('assgin', 'name')
+      .populate('status', 'name color')
+      .populate('reason_call', 'name')
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
