@@ -9,13 +9,10 @@ const leadProductSchema = new mongoose.Schema({
 }, { _id: false });
 
 const leadSchema = mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'Please add a name']
-  },
-  phone_number: {
-    type: String,
-    required: [true, 'Please add a phone number']
+  customer: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Customer',
+    required: [true, 'Please provide a customer reference']
   },
   // Products array (separate objects)
   products: {
@@ -39,6 +36,9 @@ const leadSchema = mongoose.Schema({
   note: { type: String },
   reminder: { type: String },
   orderStatus: { type: Boolean, default: false },
+  paymentType: { type: String },
+  courier: { type: String },
+  transactionId: { type: String },
   isDeleted: { type: Boolean, default: false },
   deleteDate: { type: Date }
 }, {

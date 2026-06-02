@@ -24,6 +24,9 @@ router.use('/auth', authRoutes);
 router.use('/couriers', courierRoutes);
 router.use('/upload', uploadRoutes);
 
+const customerRoutes = require('./customerRoutes');
+router.use('/customers', customerRoutes);
+
 // Future routes can be added here, e.g.:
 const leadRoutes = require('./leadRoutes');
 router.use('/leads', leadRoutes);

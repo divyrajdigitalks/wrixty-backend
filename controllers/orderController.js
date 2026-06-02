@@ -8,13 +8,21 @@ const getOrders = async (req, res) => {
   try {
     const { page = 1, limit = 100, search = '', assginTo, status, courier, product } = req.query;
     const query = {
-      isDeleted: { $ne: true },
-      ...(search ? { name: { $regex: search, $options: 'i' } } : {})
+      isDeleted: { $ne: true }
     };
-    if (assginTo) query.assginTo = assginTo;
-    if (status) query.status = status;
-    if (courier) query.courier = courier;
-    if (product) query['products.productId'] = product;
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { phone_number: { $regex: search, $options: 'i' } },
+        { transactionId: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (assginTo && assginTo !== 'all') query.assginTo = assginTo;
+    if (status && status !== 'all') query.status = status;
+    if (courier && courier !== 'all') query.courier = courier;
+    if (product && product !== 'all') query['product'] = { $regex: product, $options: 'i' };
 
     const orders = await Order.find(query)
       .populate('assginTo', 'name')

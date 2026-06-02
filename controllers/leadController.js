@@ -1,4 +1,5 @@
 const Lead = require('../models/leadModel');
+const Customer = require('../models/customerModel');
 
 // @desc    Get all leads
 // @route   GET /api/leads
@@ -7,26 +8,46 @@ const getLeads = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = '', assgin, status, reason_call, product } = req.query;
     const query = {
-      isDeleted: { $ne: true },
-      ...(search ? { name: { $regex: search, $options: 'i' } } : {})
+      isDeleted: { $ne: true }
     };
-    if (assgin) query.assgin = assgin;
-    if (status) query.status = status;
-    if (reason_call) query.reason_call = reason_call;
-    if (product) query['products.productId'] = product;
+    
+    if (search) {
+      const matchedCustomers = await Customer.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { phone_number: { $regex: search, $options: 'i' } }
+        ]
+      });
+      const customerIds = matchedCustomers.map(c => c._id);
+      query.customer = { $in: customerIds };
+    }
+    if (assgin && assgin !== 'all') query.assgin = assgin;
+    if (status && status !== 'all') query.status = status;
+    if (reason_call && reason_call !== 'all') query.reason_call = reason_call;
+    if (product && product !== 'all') query['products.productId'] = product;
     
     const leads = await Lead.find(query)
       .populate('assgin', 'name')
       .populate('status', 'name color')
       .populate('reason_call', 'name')
+      .populate('customer', 'name phone_number')
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
       
+    const mappedLeads = leads.map(lead => {
+      const obj = lead.toObject();
+      if (obj.customer) {
+        obj.name = obj.customer.name;
+        obj.phone_number = obj.customer.phone_number;
+      }
+      return obj;
+    });
+      
     const count = await Lead.countDocuments(query);
     
     res.status(200).json({
-      data: leads,
+      data: mappedLeads,
       total: count,
       page: Number(page),
       limit: Number(limit),
@@ -37,12 +58,55 @@ const getLeads = async (req, res) => {
   }
 };
 
+// @desc    Get single lead
+// @route   GET /api/leads/:id
+// @access  Public
+const getLeadById = async (req, res) => {
+  try {
+    const lead = await Lead.findById(req.params.id)
+      .populate('assgin', 'name')
+      .populate('status', 'name color')
+      .populate('reason_call', 'name')
+      .populate('customer', 'name phone_number');
+    if (!lead) {
+      return res.status(404).json({ message: 'Lead not found' });
+    }
+    const obj = lead.toObject();
+    if (obj.customer) {
+      obj.name = obj.customer.name;
+      obj.phone_number = obj.customer.phone_number;
+    }
+    res.status(200).json(obj);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Create a lead
 // @route   POST /api/leads
 // @access  Public
 const createLead = async (req, res) => {
   try {
-    const lead = await Lead.create(req.body);
+    const { name, phone_number, ...rest } = req.body;
+    let customerId = null;
+    
+    if (name && phone_number) {
+      let existingCustomer = await Customer.findOne({ phone_number });
+      if (!existingCustomer) {
+        existingCustomer = await Customer.create({ name, phone_number });
+      } else if (existingCustomer.name !== name) {
+        existingCustomer.name = name;
+        await existingCustomer.save();
+      }
+      customerId = existingCustomer._id;
+    }
+
+    if (!customerId) {
+      return res.status(400).json({ message: 'Valid name and phone number required to assign customer reference' });
+    }
+
+    const payload = { ...rest, customer: customerId };
+    const lead = await Lead.create(payload);
     res.status(201).json(lead);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -58,7 +122,22 @@ const updateLead = async (req, res) => {
     if (!lead) {
       return res.status(404).json({ message: 'Lead not found' });
     }
-    const updated = await Lead.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+
+    const { name, phone_number, ...rest } = req.body;
+    let payload = { ...rest };
+
+    if (name && phone_number) {
+      let existingCustomer = await Customer.findOne({ phone_number });
+      if (!existingCustomer) {
+        existingCustomer = await Customer.create({ name, phone_number });
+      } else if (existingCustomer.name !== name) {
+        existingCustomer.name = name;
+        await existingCustomer.save();
+      }
+      payload.customer = existingCustomer._id;
+    }
+
+    const updated = await Lead.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true });
     res.status(200).json(updated);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -83,6 +162,7 @@ const deleteLead = async (req, res) => {
 
 module.exports = {
   getLeads,
+  getLeadById,
   createLead,
   updateLead,
   deleteLead
