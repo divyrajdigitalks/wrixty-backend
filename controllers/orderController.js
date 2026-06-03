@@ -72,6 +72,66 @@ const getOrders = async (req, res) => {
 // @access  Public
 const createOrder = async (req, res) => {
   try {
+    const leadId = req.body.leadId;
+    const newProducts = req.body.products || [];
+
+    if (leadId && newProducts.length > 0) {
+      // Find the most recent order for this lead
+      const existingOrder = await Order.findOne({ leadId, isDeleted: { $ne: true } }).sort({ createdAt: -1 });
+
+      if (existingOrder) {
+        let updatedProducts = [...(existingOrder.products || [])];
+        
+        newProducts.forEach(newP => {
+          const pIdStr = newP.productId ? newP.productId.toString() : null;
+          let found = false;
+
+          if (pIdStr) {
+            const exIdx = updatedProducts.findIndex(ep => ep.productId && ep.productId.toString() === pIdStr);
+            if (exIdx >= 0) {
+              updatedProducts[exIdx].quantity = (updatedProducts[exIdx].quantity || 1) + (newP.quantity || 1);
+              updatedProducts[exIdx].subtotal = updatedProducts[exIdx].amount * updatedProducts[exIdx].quantity;
+              found = true;
+            }
+          } else {
+             // Fallback to name matching
+             const exIdx = updatedProducts.findIndex(ep => ep.name === newP.name);
+             if (exIdx >= 0) {
+                updatedProducts[exIdx].quantity = (updatedProducts[exIdx].quantity || 1) + (newP.quantity || 1);
+                updatedProducts[exIdx].subtotal = updatedProducts[exIdx].amount * updatedProducts[exIdx].quantity;
+                found = true;
+             }
+          }
+          
+          if (!found) {
+             updatedProducts.push(newP);
+          }
+        });
+
+        // Update the existing order with the merged products
+        existingOrder.products = updatedProducts;
+        
+        let newGrandTotal = updatedProducts.reduce((sum, p) => sum + (p.subtotal || (p.amount * (p.quantity || 1)) || 0), 0);
+        let newQuantityTotal = updatedProducts.reduce((sum, p) => sum + (p.quantity || 1), 0);
+        
+        existingOrder.grandTotal = newGrandTotal;
+        existingOrder.quantity = newQuantityTotal; // in case we use quantity
+        
+        await existingOrder.save();
+
+        if (req.user) {
+          await ActivityLog.create({
+            user: req.user._id,
+            lead: existingOrder.leadId || null,
+            action: 'Repeat Order',
+            message: 'Repeat order quantities updated successfully'
+          });
+        }
+
+        return res.status(200).json(existingOrder);
+      }
+    }
+
     const order = await Order.create(req.body);
 
     if (req.user) {
