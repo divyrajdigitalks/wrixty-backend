@@ -1,12 +1,40 @@
 const ActivityLog = require('../models/activityLogModel');
+const User = require('../models/userModel');
+const Customer = require('../models/customerModel');
+const Lead = require('../models/leadModel');
 
 // @desc    Get all activity logs
 // @route   GET /api/activity-logs
 // @access  Private
 const getActivityLogs = async (req, res) => {
   try {
-    const { page = 1, limit = 100, userId, startDate, endDate } = req.query;
+    const { page = 1, limit = 100, userId, startDate, endDate, search = '' } = req.query;
     const query = {};
+
+    if (search) {
+      // Find users matching search
+      const matchedUsers = await User.find({ name: { $regex: search, $options: 'i' } });
+      const userIds = matchedUsers.map(u => u._id);
+
+      // Find customers matching search
+      const matchedCustomers = await Customer.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { phone_number: { $regex: search, $options: 'i' } }
+        ]
+      });
+      const customerIds = matchedCustomers.map(c => c._id);
+      
+      // Find leads for these customers
+      const matchedLeads = await Lead.find({ customer: { $in: customerIds } });
+      const leadIds = matchedLeads.map(l => l._id);
+
+      query.$or = [
+        { message: { $regex: search, $options: 'i' } },
+        { user: { $in: userIds } },
+        { lead: { $in: leadIds } }
+      ];
+    }
 
     // Check if current user is admin/superadmin
     const isAdmin = req.user && (
