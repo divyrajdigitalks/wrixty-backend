@@ -5,7 +5,7 @@ const ActivityLog = require('../models/activityLogModel');
 // @access  Private
 const getActivityLogs = async (req, res) => {
   try {
-    const { page = 1, limit = 100, userId } = req.query;
+    const { page = 1, limit = 100, userId, startDate, endDate } = req.query;
     const query = {};
 
     // Check if current user is admin/superadmin
@@ -23,6 +23,16 @@ const getActivityLogs = async (req, res) => {
     } else {
       // Non-admin can ONLY view their own logs
       query.user = req.user._id;
+    }
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
     }
 
     const logs = await ActivityLog.find(query)

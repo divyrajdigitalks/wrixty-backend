@@ -5,7 +5,7 @@ const ReturnOrder = require('../models/returnOrderModel');
 // @access  Public
 const getReturnOrders = async (req, res) => {
   try {
-    const { page = 1, limit = 100, search = '', assginTo, product } = req.query;
+    const { page = 1, limit = 100, search = '', assginTo, product, startDate, endDate } = req.query;
     const query = { isDeleted: { $ne: true } };
 
     if (search) {
@@ -16,6 +16,16 @@ const getReturnOrders = async (req, res) => {
     }
     if (assginTo && assginTo !== 'all') query.assginTo = assginTo;
     if (product && product !== 'all') query['products.name'] = { $regex: product, $options: 'i' };
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
+    }
 
     const returnOrders = await ReturnOrder.find(query)
       .populate('assginTo', 'name')
@@ -105,11 +115,23 @@ const getReturnOrderById = async (req, res) => {
 // @access  Public
 const getStaffReturnStats = async (req, res) => {
   try {
+    const { startDate, endDate } = req.query;
     const User = require('../models/userModel');
     const users = await User.find({ isDeleted: { $ne: true } }).select('_id name');
     
+    const matchStage = { isDeleted: { $ne: true } };
+    if (startDate || endDate) {
+      matchStage.createdAt = {};
+      if (startDate) matchStage.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        matchStage.createdAt.$lte = end;
+      }
+    }
+    
     const returnOrders = await ReturnOrder.aggregate([
-      { $match: { isDeleted: { $ne: true } } },
+      { $match: matchStage },
       { $group: { _id: "$assginTo", returns: { $sum: 1 } } }
     ]);
 
@@ -130,4 +152,39 @@ const getStaffReturnStats = async (req, res) => {
   }
 };
 
-module.exports = { getReturnOrders, getReturnOrderById, createReturnOrder, updateReturnOrder, deleteReturnOrder, getStaffReturnStats };
+const exportReturnOrders = async (req, res) => {
+  try {
+    const { search = '', assginTo, product, startDate, endDate } = req.query;
+    const query = { isDeleted: { $ne: true } };
+
+    if (search) {
+      query.$or = [
+        { customerName: { $regex: search, $options: 'i' } },
+        { phone_number: { $regex: search, $options: 'i' } }
+      ];
+    }
+    if (assginTo && assginTo !== 'all') query.assginTo = assginTo;
+    if (product && product !== 'all') query['products.name'] = { $regex: product, $options: 'i' };
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
+    }
+
+    const returnOrders = await ReturnOrder.find(query)
+      .populate('assginTo', 'name')
+      .populate('orderId')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(returnOrders);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getReturnOrders, getReturnOrderById, createReturnOrder, updateReturnOrder, deleteReturnOrder, getStaffReturnStats, exportReturnOrders };

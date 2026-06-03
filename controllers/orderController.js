@@ -7,7 +7,7 @@ const ActivityLog = require('../models/activityLogModel');
 // @access  Public
 const getOrders = async (req, res) => {
   try {
-    const { page = 1, limit = 100, search = '', assginTo, status, courier, product } = req.query;
+    const { page = 1, limit = 100, search = '', assginTo, status, courier, product, startDate, endDate } = req.query;
     const query = {
       isDeleted: { $ne: true }
     };
@@ -24,6 +24,16 @@ const getOrders = async (req, res) => {
     if (status && status !== 'all') query.status = status;
     if (courier && courier !== 'all') query.courier = courier;
     if (product && product !== 'all') query['product'] = { $regex: product, $options: 'i' };
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
+    }
 
     const orders = await Order.find(query)
       .populate('assginTo', 'name')
@@ -123,4 +133,43 @@ const deleteOrder = async (req, res) => {
   }
 };
 
-module.exports = { getOrders, createOrder, updateOrder, deleteOrder };
+const exportOrders = async (req, res) => {
+  try {
+    const { search = '', assginTo, status, courier, product, startDate, endDate } = req.query;
+    const query = { isDeleted: { $ne: true } };
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { phone_number: { $regex: search, $options: 'i' } },
+        { transactionId: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (assginTo && assginTo !== 'all') query.assginTo = assginTo;
+    if (status && status !== 'all') query.status = status;
+    if (courier && courier !== 'all') query.courier = courier;
+    if (product && product !== 'all') query['product'] = { $regex: product, $options: 'i' };
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
+    }
+
+    const orders = await Order.find(query)
+      .populate('assginTo', 'name')
+      .populate('leadId', 'name')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(orders);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getOrders, createOrder, updateOrder, deleteOrder, exportOrders };

@@ -6,8 +6,10 @@ const {
   createReturnOrder,
   updateReturnOrder,
   deleteReturnOrder,
-  getStaffReturnStats
+  getStaffReturnStats,
+  exportReturnOrders
 } = require('../controllers/returnOrderController');
+const { protect } = require('../middlewares/authMiddleware');
 
 router.route('/')
   .get(getReturnOrders)
@@ -15,6 +17,9 @@ router.route('/')
 
 router.route('/stats/staff')
   .get(getStaffReturnStats);
+
+router.route('/export')
+  .get(exportReturnOrders);
 
 router.route('/:id')
   .get(getReturnOrderById)

@@ -8,7 +8,7 @@ const ActivityLog = require('../models/activityLogModel');
 // @access  Public
 const getLeads = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = '', assgin, status, reason_call, product } = req.query;
+    const { page = 1, limit = 10, search = '', assgin, status, reason_call, product, startDate, endDate, reminderStartDate, reminderEndDate } = req.query;
     const query = {
       isDeleted: { $ne: true }
     };
@@ -27,6 +27,22 @@ const getLeads = async (req, res) => {
     if (status && status !== 'all') query.status = status;
     if (reason_call && reason_call !== 'all') query.reason_call = reason_call;
     if (product && product !== 'all') query['products.productId'] = product;
+    
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
+    }
+
+    if (reminderStartDate || reminderEndDate) {
+      query.reminder = {};
+      if (reminderStartDate) query.reminder.$gte = reminderStartDate;
+      if (reminderEndDate) query.reminder.$lte = reminderEndDate;
+    }
     
     const leads = await Lead.find(query)
       .populate('assgin', 'name')
@@ -206,10 +222,63 @@ const deleteLead = async (req, res) => {
   }
 };
 
+const exportLeads = async (req, res) => {
+  try {
+    const { search = '', assgin, status, reason_call, product, startDate, endDate } = req.query;
+    const query = { isDeleted: { $ne: true } };
+    
+    if (search) {
+      const matchedCustomers = await Customer.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { phone_number: { $regex: search, $options: 'i' } }
+        ]
+      });
+      const customerIds = matchedCustomers.map(c => c._id);
+      query.customer = { $in: customerIds };
+    }
+    if (assgin && assgin !== 'all') query.assgin = assgin;
+    if (status && status !== 'all') query.status = status;
+    if (reason_call && reason_call !== 'all') query.reason_call = reason_call;
+    if (product && product !== 'all') query['products.productId'] = product;
+    
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
+    }
+    
+    const leads = await Lead.find(query)
+      .populate('assgin', 'name')
+      .populate('status', 'name')
+      .populate('reason_call', 'name')
+      .populate('customer', 'name phone_number')
+      .sort({ createdAt: -1 });
+      
+    const mappedLeads = leads.map(lead => {
+      const obj = lead.toObject();
+      if (obj.customer) {
+        obj.name = obj.customer.name;
+        obj.phone_number = obj.customer.phone_number;
+      }
+      return obj;
+    });
+      
+    res.status(200).json(mappedLeads);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getLeads,
   getLeadById,
   createLead,
   updateLead,
-  deleteLead
+  deleteLead,
+  exportLeads
 };
