@@ -8,10 +8,20 @@ const ActivityLog = require('../models/activityLogModel');
 // @access  Public
 const getLeads = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = '', assgin, status, reason_call, product, startDate, endDate, reminderStartDate, reminderEndDate } = req.query;
-    const query = {
-      isDeleted: { $ne: true }
-    };
+    const { page = 1, limit = 10, search = '', assgin, status, reason_call, product, startDate, endDate, reminderStartDate, reminderEndDate, isRepeat, isDeleted } = req.query;
+    const query = {};
+    
+    if (isDeleted === 'true') {
+      query.isDeleted = true;
+    } else {
+      query.isDeleted = { $ne: true };
+    }
+    
+    if (isRepeat === 'true') {
+      query.isRepeat = true;
+    } else {
+      query.isRepeat = { $ne: true };
+    }
     
     if (search) {
       const matchedCustomers = await Customer.find({
@@ -111,6 +121,38 @@ const getLeadById = async (req, res) => {
   }
 };
 
+// @desc    Get latest lead by phone
+// @route   GET /api/leads/latest/:phone
+// @access  Public
+const getLatestLeadByPhone = async (req, res) => {
+  try {
+    const { phone } = req.params;
+    const customer = await Customer.findOne({ phone_number: phone });
+    if (!customer) {
+      return res.status(404).json({ message: 'No customer found with this phone number' });
+    }
+    
+    const latestLead = await Lead.findOne({ customer: customer._id })
+      .populate('assgin', 'name')
+      .populate('status', 'name color')
+      .populate('reason_call', 'name')
+      .populate('products.productId', 'name amount')
+      .sort({ createdAt: -1 });
+      
+    if (!latestLead) {
+      return res.status(404).json({ message: 'No leads found for this customer' });
+    }
+    
+    const obj = latestLead.toObject();
+    obj.name = customer.name;
+    obj.phone_number = customer.phone_number;
+    
+    res.status(200).json(obj);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Create a lead
 // @route   POST /api/leads
 // @access  Public
@@ -141,7 +183,7 @@ const createLead = async (req, res) => {
       req.user.email === 'superadmin@gmail.com'
     );
 
-    const payload = { ...rest, customer: customerId };
+    const payload = { ...rest, customer: customerId, isRepeat: Boolean(req.body.isRepeat) };
     if (!isAdmin) {
       payload.assgin = req.user ? req.user._id : undefined;
     }
@@ -313,5 +355,6 @@ module.exports = {
   createLead,
   updateLead,
   deleteLead,
-  exportLeads
+  exportLeads,
+  getLatestLeadByPhone
 };

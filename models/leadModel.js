@@ -40,6 +40,7 @@ const leadSchema = mongoose.Schema({
   courier: { type: String },
   transactionId: { type: String },
   isDeleted: { type: Boolean, default: false },
+  isRepeat: { type: Boolean, default: false },
   deleteDate: { type: Date }
 }, {
   timestamps: true
