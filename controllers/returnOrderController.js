@@ -39,7 +39,18 @@ const getReturnOrders = async (req, res) => {
         ]
       });
     }
-    if (assginTo && assginTo !== 'all') query.assginTo = assginTo;
+    // Check if current user is admin/superadmin
+    const isAdmin = req.user && (
+      req.user.roles.includes('admin') || 
+      req.user.roles.includes('superadmin') || 
+      req.user.email === 'superadmin@gmail.com'
+    );
+
+    if (isAdmin) {
+      if (assginTo && assginTo !== 'all') query.assginTo = assginTo;
+    } else {
+      query.assginTo = req.user ? req.user._id : null;
+    }
     if (product && product !== 'all') query['products.name'] = { $regex: product, $options: 'i' };
 
     if (startDate || endDate) {

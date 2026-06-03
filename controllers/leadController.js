@@ -23,7 +23,18 @@ const getLeads = async (req, res) => {
       const customerIds = matchedCustomers.map(c => c._id);
       query.customer = { $in: customerIds };
     }
-    if (assgin && assgin !== 'all') query.assgin = assgin;
+    // Check if current user is admin/superadmin
+    const isAdmin = req.user && (
+      req.user.roles.includes('admin') || 
+      req.user.roles.includes('superadmin') || 
+      req.user.email === 'superadmin@gmail.com'
+    );
+
+    if (isAdmin) {
+      if (assgin && assgin !== 'all') query.assgin = assgin;
+    } else {
+      query.assgin = req.user ? req.user._id : null;
+    }
     if (status && status !== 'all') query.status = status;
     if (reason_call && reason_call !== 'all') query.reason_call = reason_call;
     if (product && product !== 'all') query['products.productId'] = product;
@@ -123,7 +134,18 @@ const createLead = async (req, res) => {
       return res.status(400).json({ message: 'Valid name and phone number required to assign customer reference' });
     }
 
+    // Check if current user is admin/superadmin
+    const isAdmin = req.user && (
+      req.user.roles.includes('admin') || 
+      req.user.roles.includes('superadmin') || 
+      req.user.email === 'superadmin@gmail.com'
+    );
+
     const payload = { ...rest, customer: customerId };
+    if (!isAdmin) {
+      payload.assgin = req.user ? req.user._id : undefined;
+    }
+
     const lead = await Lead.create(payload);
 
     // Create activity log
@@ -167,6 +189,17 @@ const updateLead = async (req, res) => {
         await existingCustomer.save();
       }
       payload.customer = existingCustomer._id;
+    }
+
+    // Check if current user is admin/superadmin
+    const isAdmin = req.user && (
+      req.user.roles.includes('admin') || 
+      req.user.roles.includes('superadmin') || 
+      req.user.email === 'superadmin@gmail.com'
+    );
+
+    if (!isAdmin) {
+      payload.assgin = req.user ? req.user._id : lead.assgin;
     }
 
     const updated = await Lead.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true });

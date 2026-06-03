@@ -20,7 +20,18 @@ const getOrders = async (req, res) => {
       ];
     }
 
-    if (assginTo && assginTo !== 'all') query.assginTo = assginTo;
+    // Check if current user is admin/superadmin
+    const isAdmin = req.user && (
+      req.user.roles.includes('admin') || 
+      req.user.roles.includes('superadmin') || 
+      req.user.email === 'superadmin@gmail.com'
+    );
+
+    if (isAdmin) {
+      if (assginTo && assginTo !== 'all') query.assginTo = assginTo;
+    } else {
+      query.assginTo = req.user ? req.user._id : null;
+    }
     if (status && status !== 'all') query.status = status;
     if (courier && courier !== 'all') query.courier = courier;
     if (product && product !== 'all') query['product'] = { $regex: product, $options: 'i' };
