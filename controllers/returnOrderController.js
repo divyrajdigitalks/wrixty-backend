@@ -1,18 +1,43 @@
 const ReturnOrder = require('../models/returnOrderModel');
+const Order = require('../models/orderModel');
 
 // @desc    Get all return orders
 // @route   GET /api/return-orders
 // @access  Public
 const getReturnOrders = async (req, res) => {
   try {
-    const { page = 1, limit = 100, search = '', assginTo, product, startDate, endDate } = req.query;
+    const { page = 1, limit = 100, search = '', assginTo, product, startDate, endDate, orderStartDate, orderEndDate } = req.query;
     const query = { isDeleted: { $ne: true } };
 
+    if (orderStartDate || orderEndDate) {
+      const orderQuery = { isDeleted: { $ne: true } };
+      orderQuery.createdAt = {};
+      if (orderStartDate) orderQuery.createdAt.$gte = new Date(orderStartDate);
+      if (orderEndDate) {
+        const end = new Date(orderEndDate);
+        end.setHours(23, 59, 59, 999);
+        orderQuery.createdAt.$lte = end;
+      }
+
+      const matchedOrders = await Order.find(orderQuery).select('_id phone_number');
+      const matchedIds = matchedOrders.map(o => o._id);
+      const matchedPhones = matchedOrders.map(o => o.phone_number).filter(Boolean);
+      
+      query.$or = query.$or || [];
+      query.$or.push({ orderId: { $in: matchedIds } });
+      if (matchedPhones.length > 0) {
+        query.$or.push({ phone_number: { $in: matchedPhones } });
+      }
+    }
+
     if (search) {
-      query.$or = [
-        { customerName: { $regex: search, $options: 'i' } },
-        { phone_number: { $regex: search, $options: 'i' } }
-      ];
+      if (!query.$and) query.$and = [];
+      query.$and.push({
+        $or: [
+          { customerName: { $regex: search, $options: 'i' } },
+          { phone_number: { $regex: search, $options: 'i' } }
+        ]
+      });
     }
     if (assginTo && assginTo !== 'all') query.assginTo = assginTo;
     if (product && product !== 'all') query['products.name'] = { $regex: product, $options: 'i' };
@@ -32,7 +57,18 @@ const getReturnOrders = async (req, res) => {
       .populate('orderId')
       .limit(limit * 1)
       .skip((page - 1) * limit)
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
+
+
+    for (let i = 0; i < returnOrders.length; i++) {
+      if (!returnOrders[i].orderId) {
+        const matchedOrder = await Order.findOne({ phone_number: returnOrders[i].phone_number }).sort({ createdAt: -1 }).select('createdAt');
+        if (matchedOrder) {
+          returnOrders[i].orderId = { createdAt: matchedOrder.createdAt };
+        }
+      }
+    }
 
     const count = await ReturnOrder.countDocuments(query);
 
@@ -132,19 +168,31 @@ const getStaffReturnStats = async (req, res) => {
     
     const returnOrders = await ReturnOrder.aggregate([
       { $match: matchStage },
-      { $group: { _id: "$assginTo", returns: { $sum: 1 } } }
+      { 
+        $group: { 
+          _id: { 
+            assginTo: "$assginTo", 
+            date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }
+          }, 
+          returns: { $sum: 1 } 
+        } 
+      },
+      { $sort: { "_id.date": -1 } }
     ]);
 
-    const returnMap = {};
+    const stats = [];
     returnOrders.forEach(ro => {
-      if (ro._id) returnMap[ro._id.toString()] = ro.returns;
+      const uId = ro._id.assginTo ? ro._id.assginTo.toString() : null;
+      const user = users.find(u => u._id.toString() === uId);
+      if (user) {
+        stats.push({
+          id: `${user._id}_${ro._id.date}`,
+          name: user.name,
+          date: ro._id.date,
+          returns: ro.returns
+        });
+      }
     });
-
-    const stats = users.map(user => ({
-      id: user._id,
-      name: user.name,
-      returns: returnMap[user._id.toString()] || 0
-    }));
 
     res.status(200).json(stats);
   } catch (error) {
@@ -154,14 +202,38 @@ const getStaffReturnStats = async (req, res) => {
 
 const exportReturnOrders = async (req, res) => {
   try {
-    const { search = '', assginTo, product, startDate, endDate } = req.query;
+    const { search = '', assginTo, product, startDate, endDate, orderStartDate, orderEndDate } = req.query;
     const query = { isDeleted: { $ne: true } };
 
+    if (orderStartDate || orderEndDate) {
+      const orderQuery = { isDeleted: { $ne: true } };
+      orderQuery.createdAt = {};
+      if (orderStartDate) orderQuery.createdAt.$gte = new Date(orderStartDate);
+      if (orderEndDate) {
+        const end = new Date(orderEndDate);
+        end.setHours(23, 59, 59, 999);
+        orderQuery.createdAt.$lte = end;
+      }
+      const Order = require('../models/orderModel');
+      const matchedOrders = await Order.find(orderQuery).select('_id phone_number');
+      const matchedIds = matchedOrders.map(o => o._id);
+      const matchedPhones = matchedOrders.map(o => o.phone_number).filter(Boolean);
+      
+      query.$or = query.$or || [];
+      query.$or.push({ orderId: { $in: matchedIds } });
+      if (matchedPhones.length > 0) {
+        query.$or.push({ phone_number: { $in: matchedPhones } });
+      }
+    }
+
     if (search) {
-      query.$or = [
-        { customerName: { $regex: search, $options: 'i' } },
-        { phone_number: { $regex: search, $options: 'i' } }
-      ];
+      if (!query.$and) query.$and = [];
+      query.$and.push({
+        $or: [
+          { customerName: { $regex: search, $options: 'i' } },
+          { phone_number: { $regex: search, $options: 'i' } }
+        ]
+      });
     }
     if (assginTo && assginTo !== 'all') query.assginTo = assginTo;
     if (product && product !== 'all') query['products.name'] = { $regex: product, $options: 'i' };
@@ -179,7 +251,18 @@ const exportReturnOrders = async (req, res) => {
     const returnOrders = await ReturnOrder.find(query)
       .populate('assginTo', 'name')
       .populate('orderId')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const Order = require('../models/orderModel');
+    for (let i = 0; i < returnOrders.length; i++) {
+      if (!returnOrders[i].orderId) {
+        const matchedOrder = await Order.findOne({ phone_number: returnOrders[i].phone_number }).sort({ createdAt: -1 }).select('createdAt');
+        if (matchedOrder) {
+          returnOrders[i].orderId = { createdAt: matchedOrder.createdAt };
+        }
+      }
+    }
 
     res.status(200).json(returnOrders);
   } catch (error) {
