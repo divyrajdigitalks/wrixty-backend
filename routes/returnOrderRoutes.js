@@ -12,18 +12,18 @@ const {
 const { protect } = require('../middlewares/authMiddleware');
 
 router.route('/')
-  .get(getReturnOrders)
-  .post(createReturnOrder);
+  .get(protect, getReturnOrders)
+  .post(protect, createReturnOrder);
 
 router.route('/stats/staff')
-  .get(getStaffReturnStats);
+  .get(protect, getStaffReturnStats);
 
 router.route('/export')
   .get(exportReturnOrders);
 
 router.route('/:id')
-  .get(getReturnOrderById)
-  .put(updateReturnOrder)
-  .delete(deleteReturnOrder);
+  .get(protect, getReturnOrderById)
+  .put(protect, updateReturnOrder)
+  .delete(protect, deleteReturnOrder);
 
 module.exports = router;
