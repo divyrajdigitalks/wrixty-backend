@@ -36,4 +36,7 @@ router.use('/orders', orderRoutes);
 const activityLogRoutes = require('./activityLogRoutes');
 router.use('/activity-logs', activityLogRoutes);
 
+const dashboardRoutes = require('./dashboardRoutes');
+router.use('/dashboard', dashboardRoutes);
+
 module.exports = router;
