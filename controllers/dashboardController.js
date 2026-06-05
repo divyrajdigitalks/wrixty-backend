@@ -29,7 +29,7 @@ const getDashboardStats = async (req, res) => {
     }
 
     // Lead query filters
-    const leadQuery = { isDeleted: { $ne: true }, ...dateFilter };
+    const leadQuery = { isDeleted: { $ne: true }, isRepeat: { $ne: true }, ...dateFilter };
     if (!isAdmin) {
       leadQuery.assgin = req.user._id;
     }
@@ -54,7 +54,14 @@ const getDashboardStats = async (req, res) => {
     ]);
 
     // 1. Basic Metrics
-    const convertedToOrders = orders.length; // Count of orders created in this timeframe
+    let convertedToOrders = 0;
+    orders.forEach(o => {
+      if (o.products && o.products.length > 0) {
+        convertedToOrders += o.products.reduce((acc, p) => acc + (p.quantity || 1), 0);
+      } else {
+        convertedToOrders += (o.quantity || 1);
+      }
+    });
     
     // Total Sell (Sum of grand totals or subtotal for delivered products)
     let totalSell = 0;
@@ -76,8 +83,15 @@ const getDashboardStats = async (req, res) => {
       }
     });
 
+    let totalReturnOrderCount = 0;
+    returnOrders.forEach(r => {
+      if (r.products && r.products.length > 0) {
+        totalReturnOrderCount += r.products.reduce((acc, p) => acc + (p.quantity || 1), 0);
+      } else {
+        totalReturnOrderCount += (r.quantity || 1);
+      }
+    });
     const netRateAmount = totalSell - totalReturnAmount;
-    const totalReturnOrderCount = returnOrders.length;
 
     const metrics = {
       totalLeads: leadsCount,
@@ -130,7 +144,13 @@ const getDashboardStats = async (req, res) => {
       const staff = order.assginTo || { _id: 'unassigned', name: 'Super Admin' };
       initStaff(staff._id.toString(), staff.name);
       
-      staffMap[staff._id.toString()].staffTotalOrder += 1;
+      let orderQty = 0;
+      if (order.products && order.products.length > 0) {
+        orderQty = order.products.reduce((acc, p) => acc + (p.quantity || 1), 0);
+      } else {
+        orderQty = order.quantity || 1;
+      }
+      staffMap[staff._id.toString()].staffTotalOrder += orderQty;
       
       if (order.products) {
         order.products.forEach(p => {
@@ -160,7 +180,13 @@ const getDashboardStats = async (req, res) => {
       const staff = ret.assginTo || { _id: 'unassigned', name: 'Super Admin' };
       initStaff(staff._id.toString(), staff.name);
       
-      staffMap[staff._id.toString()].staffReturnOrder += 1;
+      let retQty = 0;
+      if (ret.products && ret.products.length > 0) {
+        retQty = ret.products.reduce((acc, p) => acc + (p.quantity || 1), 0);
+      } else {
+        retQty = ret.quantity || 1;
+      }
+      staffMap[staff._id.toString()].staffReturnOrder += retQty;
 
       if (ret.products) {
         ret.products.forEach(p => {

@@ -8,7 +8,12 @@ const getCustomers = async (req, res) => {
     const { search = '' } = req.query;
     const query = {
       isDeleted: { $ne: true },
-      ...(search ? { name: { $regex: search, $options: 'i' } } : {})
+      ...(search ? {
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { phone_number: { $regex: search, $options: 'i' } }
+        ]
+      } : {})
     };
     
     const customers = await Customer.find(query).sort({ createdAt: -1 });

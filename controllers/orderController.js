@@ -28,20 +28,23 @@ const getOrders = async (req, res) => {
     );
 
     if (isAdmin) {
-      if (assginTo && assginTo !== 'all') query.assginTo = assginTo;
+      if (assginTo && assginTo !== 'all' && assginTo !== '') query.assginTo = { $in: assginTo.split(',') };
     } else {
       query.assginTo = req.user ? req.user._id : null;
     }
-    if (status && status !== 'all') query.status = status;
-    if (courier && courier !== 'all') query.courier = courier;
-    if (product && product !== 'all') query['product'] = { $regex: product, $options: 'i' };
+    if (status && status !== 'all' && status !== '') query.status = { $in: status.split(',') };
+    if (courier && courier !== 'all' && courier !== '') query.courier = { $in: courier.split(',') };
+    if (product && product !== 'all' && product !== '') {
+      // product is an array of names from the frontend. We match any order that has at least one matching product name.
+      query['products.name'] = { $regex: product.split(',').map(p => p.trim()).join('|'), $options: 'i' };
+    }
 
     if (startDate || endDate) {
       query.createdAt = {};
       if (startDate) query.createdAt.$gte = new Date(startDate);
       if (endDate) {
         const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        end.setUTCHours(23, 59, 59, 999);
         query.createdAt.$lte = end;
       }
     }
@@ -227,7 +230,7 @@ const exportOrders = async (req, res) => {
       if (startDate) query.createdAt.$gte = new Date(startDate);
       if (endDate) {
         const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        end.setUTCHours(23, 59, 59, 999);
         query.createdAt.$lte = end;
       }
     }

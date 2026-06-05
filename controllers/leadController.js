@@ -41,20 +41,20 @@ const getLeads = async (req, res) => {
     );
 
     if (isAdmin) {
-      if (assgin && assgin !== 'all') query.assgin = assgin;
+      if (assgin && assgin !== 'all' && assgin !== '') query.assgin = { $in: assgin.split(',') };
     } else {
       query.assgin = req.user ? req.user._id : null;
     }
-    if (status && status !== 'all') query.status = status;
-    if (reason_call && reason_call !== 'all') query.reason_call = reason_call;
-    if (product && product !== 'all') query['products.productId'] = product;
+    if (status && status !== 'all' && status !== '') query.status = { $in: status.split(',') };
+    if (reason_call && reason_call !== 'all' && reason_call !== '') query.reason_call = { $in: reason_call.split(',') };
+    if (product && product !== 'all' && product !== '') query['products.productId'] = { $in: product.split(',') };
     
     if (startDate || endDate) {
       query.createdAt = {};
       if (startDate) query.createdAt.$gte = new Date(startDate);
       if (endDate) {
         const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        end.setUTCHours(23, 59, 59, 999);
         query.createdAt.$lte = end;
       }
     }
@@ -322,7 +322,7 @@ const exportLeads = async (req, res) => {
       if (startDate) query.createdAt.$gte = new Date(startDate);
       if (endDate) {
         const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        end.setUTCHours(23, 59, 59, 999);
         query.createdAt.$lte = end;
       }
     }

@@ -9,6 +9,7 @@ const reasonToCallRoutes = require('./routes/reasonToCallRoutes');
 const returnOrderTypeRoutes = require('./routes/returnOrderTypeRoutes');
 const courierRoutes = require('./routes/courierRoutes');
 const returnOrderRoutes = require('./routes/returnOrderRoutes');
+const settingRoutes = require('./routes/settingRoutes');
 
 // Connect to Database
 connectDB();
@@ -27,6 +28,7 @@ app.use('/api/reason-to-calls', reasonToCallRoutes);
 app.use('/api/return-order-types', returnOrderTypeRoutes);
 app.use('/api/couriers', courierRoutes);
 app.use('/api/return-orders', returnOrderRoutes);
+app.use('/api/settings', settingRoutes);
 
 // Health check endpoint
 app.get('/', (req, res) => {

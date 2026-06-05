@@ -6,7 +6,7 @@ const Order = require('../models/orderModel');
 // @access  Public
 const getReturnOrders = async (req, res) => {
   try {
-    const { page = 1, limit = 100, search = '', assginTo, product, startDate, endDate, orderStartDate, orderEndDate } = req.query;
+    const { page = 1, limit = 100, search = '', assginTo, product, type, startDate, endDate, orderStartDate, orderEndDate } = req.query;
     const query = { isDeleted: { $ne: true } };
 
     if (orderStartDate || orderEndDate) {
@@ -15,7 +15,7 @@ const getReturnOrders = async (req, res) => {
       if (orderStartDate) orderQuery.createdAt.$gte = new Date(orderStartDate);
       if (orderEndDate) {
         const end = new Date(orderEndDate);
-        end.setHours(23, 59, 59, 999);
+        end.setUTCHours(23, 59, 59, 999);
         orderQuery.createdAt.$lte = end;
       }
 
@@ -47,18 +47,23 @@ const getReturnOrders = async (req, res) => {
     );
 
     if (isAdmin) {
-      if (assginTo && assginTo !== 'all') query.assginTo = assginTo;
+      if (assginTo && assginTo !== 'all' && assginTo !== '') query.assginTo = { $in: assginTo.split(',') };
     } else {
       query.assginTo = req.user ? req.user._id : null;
     }
-    if (product && product !== 'all') query['products.name'] = { $regex: product, $options: 'i' };
+    if (product && product !== 'all' && product !== '') {
+      query['products.productId'] = { $in: product.split(',') };
+    }
+    if (type && type !== 'all' && type !== '') {
+      query.type = { $in: type.split(',') };
+    }
 
     if (startDate || endDate) {
       query.createdAt = {};
       if (startDate) query.createdAt.$gte = new Date(startDate);
       if (endDate) {
         const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        end.setUTCHours(23, 59, 59, 999);
         query.createdAt.$lte = end;
       }
     }
@@ -162,7 +167,7 @@ const getReturnOrderById = async (req, res) => {
 // @access  Public
 const getStaffReturnStats = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, search = '' } = req.query;
     const User = require('../models/userModel');
     const users = await User.find({ isDeleted: { $ne: true } }).select('_id name');
     
@@ -172,7 +177,7 @@ const getStaffReturnStats = async (req, res) => {
       if (startDate) matchStage.createdAt.$gte = new Date(startDate);
       if (endDate) {
         const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        end.setUTCHours(23, 59, 59, 999);
         matchStage.createdAt.$lte = end;
       }
     }
@@ -205,7 +210,11 @@ const getStaffReturnStats = async (req, res) => {
       }
     });
 
-    res.status(200).json(stats);
+    const filteredStats = search
+      ? stats.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
+      : stats;
+
+    res.status(200).json(filteredStats);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -222,7 +231,7 @@ const exportReturnOrders = async (req, res) => {
       if (orderStartDate) orderQuery.createdAt.$gte = new Date(orderStartDate);
       if (orderEndDate) {
         const end = new Date(orderEndDate);
-        end.setHours(23, 59, 59, 999);
+        end.setUTCHours(23, 59, 59, 999);
         orderQuery.createdAt.$lte = end;
       }
       const Order = require('../models/orderModel');
@@ -254,7 +263,7 @@ const exportReturnOrders = async (req, res) => {
       if (startDate) query.createdAt.$gte = new Date(startDate);
       if (endDate) {
         const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        end.setUTCHours(23, 59, 59, 999);
         query.createdAt.$lte = end;
       }
     }
