@@ -65,25 +65,26 @@ const getLeads = async (req, res) => {
       if (reminderEndDate) query.reminder.$lte = reminderEndDate;
     }
     
-    const leads = await Lead.find(query)
-      .populate('assgin', 'name')
-      .populate('status', 'name color')
-      .populate('reason_call', 'name')
-      .populate('customer', 'name phone_number')
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .sort({ createdAt: -1 });
+    const [leads, count] = await Promise.all([
+      Lead.find(query)
+        .populate('assgin', 'name')
+        .populate('status', 'name color')
+        .populate('reason_call', 'name')
+        .populate('customer', 'name phone_number')
+        .limit(limit * 1)
+        .skip((page - 1) * limit)
+        .sort({ createdAt: -1 })
+        .lean(),
+      Lead.countDocuments(query)
+    ]);
       
     const mappedLeads = leads.map(lead => {
-      const obj = lead.toObject();
-      if (obj.customer) {
-        obj.name = obj.customer.name;
-        obj.phone_number = obj.customer.phone_number;
+      if (lead.customer) {
+        lead.name = lead.customer.name;
+        lead.phone_number = lead.customer.phone_number;
       }
-      return obj;
+      return lead;
     });
-      
-    const count = await Lead.countDocuments(query);
     
     res.status(200).json({
       data: mappedLeads,
