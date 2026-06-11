@@ -162,11 +162,11 @@ const createLead = async (req, res) => {
     const { name, phone_number, ...rest } = req.body;
     let customerId = null;
     
-    if (name && phone_number) {
+    if (phone_number) {
       let existingCustomer = await Customer.findOne({ phone_number });
       if (!existingCustomer) {
-        existingCustomer = await Customer.create({ name, phone_number });
-      } else if (existingCustomer.name !== name) {
+        existingCustomer = await Customer.create({ name: name || 'Unknown', phone_number });
+      } else if (name && existingCustomer.name !== name) {
         existingCustomer.name = name;
         await existingCustomer.save();
       }
@@ -174,7 +174,12 @@ const createLead = async (req, res) => {
     }
 
     if (!customerId) {
-      return res.status(400).json({ message: 'Valid name and phone number required to assign customer reference' });
+      return res.status(400).json({ message: 'Valid phone number required to assign customer reference' });
+    }
+
+    // Explicitly validate required fields per user request
+    if (!rest.status || !rest.products || rest.products.length === 0) {
+      return res.status(400).json({ message: 'Status and Project (Products) are required' });
     }
 
     // Check if current user is admin/superadmin
@@ -223,15 +228,22 @@ const updateLead = async (req, res) => {
     const statusChanged = req.body.status && req.body.status.toString() !== (lead.status ? lead.status.toString() : '');
     const orderStatusChanged = req.body.orderStatus !== undefined && req.body.orderStatus !== lead.orderStatus;
 
-    if (name && phone_number) {
+    if (phone_number) {
       let existingCustomer = await Customer.findOne({ phone_number });
       if (!existingCustomer) {
-        existingCustomer = await Customer.create({ name, phone_number });
-      } else if (existingCustomer.name !== name) {
+        existingCustomer = await Customer.create({ name: name || 'Unknown', phone_number });
+      } else if (name && existingCustomer.name !== name) {
         existingCustomer.name = name;
         await existingCustomer.save();
       }
       payload.customer = existingCustomer._id;
+    }
+
+    if ('status' in payload && !payload.status) {
+      return res.status(400).json({ message: 'Status is required' });
+    }
+    if ('products' in payload && (!payload.products || payload.products.length === 0)) {
+      return res.status(400).json({ message: 'Project (Products) are required' });
     }
 
     // Check if current user is admin/superadmin

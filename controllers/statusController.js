@@ -14,7 +14,7 @@ const getStatuses = async (req, res) => {
       : {};
 
     const [statuses, total] = await Promise.all([
-      Status.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+      Status.find(filter).skip(skip).limit(limit).sort({ order: 1, createdAt: -1 }),
       Status.countDocuments(filter)
     ]);
 
@@ -83,6 +83,27 @@ const deleteStatus = async (req, res) => {
   }
 };
 
+// @desc    Reorder statuses
+// @route   PUT /api/statuses/reorder
+const reorderStatuses = async (req, res) => {
+  try {
+    const { statuses } = req.body; // Array of { id, order }
+    if (!statuses || !Array.isArray(statuses)) {
+      return res.status(400).json({ message: 'Invalid payload for reordering' });
+    }
+    
+    // Update all statuses with their new order
+    const updatePromises = statuses.map(s => 
+      Status.findByIdAndUpdate(s.id, { order: s.order })
+    );
+    
+    await Promise.all(updatePromises);
+    res.status(200).json({ message: 'Statuses reordered successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Export all statuses (with optional search, no pagination)
 // @route   GET /api/statuses/export?search=name
 const exportStatuses = async (req, res) => {
@@ -96,4 +117,4 @@ const exportStatuses = async (req, res) => {
   }
 };
 
-module.exports = { getStatuses, getStatus, createStatus, updateStatus, deleteStatus, exportStatuses };
+module.exports = { getStatuses, getStatus, createStatus, updateStatus, deleteStatus, exportStatuses, reorderStatuses };

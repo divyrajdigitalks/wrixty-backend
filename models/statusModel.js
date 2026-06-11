@@ -9,6 +9,10 @@ const statusSchema = mongoose.Schema({
     type: String,
     required: [true, 'Please add a color'],
     default: '#3b82f6'
+  },
+  order: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true
