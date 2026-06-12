@@ -94,7 +94,11 @@ const getLeads = async (req, res) => {
       totalPages: Math.ceil(count / limit)
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -118,7 +122,11 @@ const getLeadById = async (req, res) => {
     }
     res.status(200).json(obj);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -150,7 +158,11 @@ const getLatestLeadByPhone = async (req, res) => {
     
     res.status(200).json(obj);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -175,11 +187,6 @@ const createLead = async (req, res) => {
 
     if (!customerId) {
       return res.status(400).json({ message: 'Valid phone number required to assign customer reference' });
-    }
-
-    // Explicitly validate required fields per user request
-    if (!rest.status || !rest.products || rest.products.length === 0) {
-      return res.status(400).json({ message: 'Status and Project (Products) are required' });
     }
 
     // Check if current user is admin/superadmin
@@ -208,6 +215,10 @@ const createLead = async (req, res) => {
 
     res.status(201).json(lead);
   } catch (error) {
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
     res.status(400).json({ message: error.message });
   }
 };
@@ -237,13 +248,6 @@ const updateLead = async (req, res) => {
         await existingCustomer.save();
       }
       payload.customer = existingCustomer._id;
-    }
-
-    if ('status' in payload && !payload.status) {
-      return res.status(400).json({ message: 'Status is required' });
-    }
-    if ('products' in payload && (!payload.products || payload.products.length === 0)) {
-      return res.status(400).json({ message: 'Project (Products) are required' });
     }
 
     // Check if current user is admin/superadmin
@@ -280,6 +284,10 @@ const updateLead = async (req, res) => {
 
     res.status(200).json(updated);
   } catch (error) {
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
     res.status(400).json({ message: error.message });
   }
 };
@@ -306,7 +314,11 @@ const deleteLead = async (req, res) => {
 
     res.status(200).json({ message: 'Lead deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -358,7 +370,11 @@ const exportLeads = async (req, res) => {
       
     res.status(200).json(mappedLeads);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 

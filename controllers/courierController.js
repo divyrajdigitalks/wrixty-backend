@@ -26,7 +26,11 @@ const getCouriers = async (req, res) => {
       totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -38,7 +42,11 @@ const getCourier = async (req, res) => {
     if (!courier) return res.status(404).json({ message: 'Courier not found' });
     res.status(200).json(courier);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -55,7 +63,11 @@ const createCourier = async (req, res) => {
     const courier = await Courier.create({ name });
     res.status(201).json(courier);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -73,7 +85,11 @@ const updateCourier = async (req, res) => {
     );
     res.status(200).json(updated);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -87,7 +103,11 @@ const deleteCourier = async (req, res) => {
     await Courier.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Courier deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 

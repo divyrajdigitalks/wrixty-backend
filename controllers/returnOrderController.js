@@ -96,7 +96,11 @@ const getReturnOrders = async (req, res) => {
       totalPages: Math.ceil(count / limit)
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -108,6 +112,10 @@ const createReturnOrder = async (req, res) => {
     const returnOrder = await ReturnOrder.create(req.body);
     res.status(201).json(returnOrder);
   } catch (error) {
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
     res.status(400).json({ message: error.message });
   }
 };
@@ -126,6 +134,10 @@ const updateReturnOrder = async (req, res) => {
     });
     res.status(200).json(updated);
   } catch (error) {
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
     res.status(400).json({ message: error.message });
   }
 };
@@ -141,7 +153,11 @@ const deleteReturnOrder = async (req, res) => {
     await ReturnOrder.findByIdAndUpdate(req.params.id, { isDeleted: true, deleteDate: new Date() });
     res.status(200).json({ message: 'Return order deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -158,7 +174,11 @@ const getReturnOrderById = async (req, res) => {
     
     res.status(200).json(returnOrder);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -216,7 +236,11 @@ const getStaffReturnStats = async (req, res) => {
 
     res.status(200).json(filteredStats);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -286,7 +310,11 @@ const exportReturnOrders = async (req, res) => {
 
     res.status(200).json(returnOrders);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 

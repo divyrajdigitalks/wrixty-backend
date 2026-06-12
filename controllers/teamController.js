@@ -26,7 +26,11 @@ const getTeams = async (req, res) => {
       totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -38,7 +42,11 @@ const getTeam = async (req, res) => {
     if (!team) return res.status(404).json({ message: 'Team not found' });
     res.status(200).json(team);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -61,7 +69,11 @@ const createTeam = async (req, res) => {
     });
     res.status(201).json(team);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -75,7 +87,11 @@ const updateTeam = async (req, res) => {
     const updated = await Team.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     res.status(200).json(updated);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -88,7 +104,11 @@ const deleteTeam = async (req, res) => {
     await Team.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Team deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -101,7 +121,11 @@ const exportTeams = async (req, res) => {
     const teams = await Team.find(filter).sort({ createdAt: -1 });
     res.status(200).json(teams);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 

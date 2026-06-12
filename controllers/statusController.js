@@ -26,7 +26,11 @@ const getStatuses = async (req, res) => {
       totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -38,7 +42,11 @@ const getStatus = async (req, res) => {
     if (!status) return res.status(404).json({ message: 'Status not found' });
     res.status(200).json(status);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -53,7 +61,11 @@ const createStatus = async (req, res) => {
     const status = await Status.create({ name, color: color || '#3b82f6' });
     res.status(201).json(status);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -66,7 +78,11 @@ const updateStatus = async (req, res) => {
     const updated = await Status.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     res.status(200).json(updated);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -79,7 +95,11 @@ const deleteStatus = async (req, res) => {
     await Status.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Status deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -100,7 +120,11 @@ const reorderStatuses = async (req, res) => {
     await Promise.all(updatePromises);
     res.status(200).json({ message: 'Statuses reordered successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -113,7 +137,11 @@ const exportStatuses = async (req, res) => {
     const statuses = await Status.find(filter).sort({ createdAt: -1 });
     res.status(200).json(statuses);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 

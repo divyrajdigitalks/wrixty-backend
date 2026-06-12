@@ -26,7 +26,11 @@ const getReturnOrderTypes = async (req, res) => {
       totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -38,7 +42,11 @@ const getReturnOrderType = async (req, res) => {
     if (!type) return res.status(404).json({ message: 'Return order type not found' });
     res.status(200).json(type);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -53,7 +61,11 @@ const createReturnOrderType = async (req, res) => {
     const type = await ReturnOrderType.create({ name });
     res.status(201).json(type);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -66,7 +78,11 @@ const updateReturnOrderType = async (req, res) => {
     const updated = await ReturnOrderType.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     res.status(200).json(updated);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -79,7 +95,11 @@ const deleteReturnOrderType = async (req, res) => {
     await ReturnOrderType.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Return order type deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -92,7 +112,11 @@ const exportReturnOrderTypes = async (req, res) => {
     const types = await ReturnOrderType.find(filter).sort({ createdAt: -1 });
     res.status(200).json(types);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 

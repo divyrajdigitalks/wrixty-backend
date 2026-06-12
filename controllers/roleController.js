@@ -26,7 +26,11 @@ const getRoles = async (req, res) => {
       totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -38,7 +42,11 @@ const getRole = async (req, res) => {
     if (!role) return res.status(404).json({ message: 'Role not found' });
     res.status(200).json(role);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -53,7 +61,11 @@ const createRole = async (req, res) => {
     const role = await Role.create({ name, permissions: permissions || {} });
     res.status(201).json(role);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -66,7 +78,11 @@ const updateRole = async (req, res) => {
     const updated = await Role.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     res.status(200).json(updated);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -79,7 +95,11 @@ const deleteRole = async (req, res) => {
     await Role.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Role deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -92,7 +112,11 @@ const exportRoles = async (req, res) => {
     const roles = await Role.find(filter).sort({ createdAt: -1 });
     res.status(200).json(roles);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 

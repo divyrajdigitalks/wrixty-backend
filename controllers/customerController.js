@@ -5,7 +5,11 @@ const Customer = require('../models/customerModel');
 // @access  Public
 const getCustomers = async (req, res) => {
   try {
-    const { search = '' } = req.query;
+    const { search = '', page = 1, limit = 10 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
     const query = {
       isDeleted: { $ne: true },
       ...(search ? {
@@ -16,13 +20,25 @@ const getCustomers = async (req, res) => {
       } : {})
     };
     
-    const customers = await Customer.find(query).sort({ createdAt: -1 });
+    const total = await Customer.countDocuments(query);
+    const customers = await Customer.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
       
     res.status(200).json({
       data: customers,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum)
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -34,6 +50,10 @@ const createCustomer = async (req, res) => {
     const customer = await Customer.create(req.body);
     res.status(201).json(customer);
   } catch (error) {
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
     res.status(400).json({ message: error.message });
   }
 };
@@ -50,6 +70,10 @@ const updateCustomer = async (req, res) => {
     const updated = await Customer.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     res.status(200).json(updated);
   } catch (error) {
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
     res.status(400).json({ message: error.message });
   }
 };
@@ -66,7 +90,11 @@ const deleteCustomer = async (req, res) => {
     await Customer.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
     res.status(200).json({ message: 'Customer deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+        if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `A record with this ${field} already exists.` });
+    }
+    res.status(400).json({ message: error.message });
   }
 };
 
