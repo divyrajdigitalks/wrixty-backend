@@ -26,9 +26,30 @@ const getOrders = async (req, res) => {
       req.user.roles.includes('superadmin') || 
       req.user.email === 'superadmin@gmail.com'
     );
+    const isManager = req.user && req.user.roles.some(r => ['manager', 'main manager', 'maneger', 'main maneger'].includes(r.toLowerCase()));
 
     if (isAdmin) {
       if (assginTo && assginTo !== 'all' && assginTo !== '') query.assginTo = { $in: assginTo.split(',') };
+    } else if (isManager) {
+      const Team = require('../models/teamModel');
+      const teams = await Team.find({ head: req.user._id });
+      let allowedUsers = [req.user._id.toString()];
+      teams.forEach(team => {
+        if (team.member) {
+          team.member.forEach(m => {
+            if (m) allowedUsers.push(m.toString());
+          });
+        }
+      });
+      allowedUsers = [...new Set(allowedUsers)];
+      
+      if (assginTo && assginTo !== 'all' && assginTo !== '') {
+         const requestedAssigns = assginTo.split(',');
+         const validAssigns = requestedAssigns.filter(a => allowedUsers.includes(a));
+         query.assginTo = { $in: validAssigns.length ? validAssigns : allowedUsers };
+      } else {
+         query.assginTo = { $in: allowedUsers };
+      }
     } else {
       query.assginTo = req.user ? req.user._id : null;
     }
@@ -137,6 +158,10 @@ const createOrder = async (req, res) => {
 
     const order = await Order.create(req.body);
 
+    if (leadId) {
+      await Lead.findByIdAndUpdate(leadId, { orderStatus: true });
+    }
+
     if (req.user) {
       await ActivityLog.create({
         user: req.user._id,
@@ -220,7 +245,40 @@ const exportOrders = async (req, res) => {
       ];
     }
 
-    if (assginTo && assginTo !== 'all') query.assginTo = assginTo;
+    const isAdmin = req.user && (
+      req.user.roles.includes('admin') || 
+      req.user.roles.includes('superadmin') || 
+      req.user.email === 'superadmin@gmail.com'
+    );
+    const isManager = req.user && req.user.roles.some(r => ['manager', 'main manager', 'maneger', 'main maneger'].includes(r.toLowerCase()));
+
+    if (isAdmin) {
+      if (assginTo && assginTo !== 'all') query.assginTo = assginTo;
+    } else if (isManager) {
+      const Team = require('../models/teamModel');
+      const teams = await Team.find({ head: req.user._id });
+      let allowedUsers = [req.user._id.toString()];
+      teams.forEach(team => {
+        if (team.member) {
+          team.member.forEach(m => {
+            if (m) allowedUsers.push(m.toString());
+          });
+        }
+      });
+      allowedUsers = [...new Set(allowedUsers)];
+      
+      if (assginTo && assginTo !== 'all') {
+         if (allowedUsers.includes(assginTo)) {
+           query.assginTo = assginTo;
+         } else {
+           query.assginTo = { $in: allowedUsers };
+         }
+      } else {
+         query.assginTo = { $in: allowedUsers };
+      }
+    } else {
+      query.assginTo = req.user ? req.user._id : null;
+    }
     if (status && status !== 'all') query.status = status;
     if (courier && courier !== 'all') query.courier = courier;
     if (product && product !== 'all') query['product'] = { $regex: product, $options: 'i' };

@@ -2,8 +2,7 @@ const mongoose = require('mongoose');
 
 const customerSchema = mongoose.Schema({
   name: {
-    type: String,
-    required: [true, 'Please add a name']
+    type: String
   },
   phone_number: {
     type: String,

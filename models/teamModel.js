@@ -8,13 +8,14 @@ const teamSchema = mongoose.Schema({
     trim: true,
   },
   head: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: [true, 'Please select a team head']
   },
-  member: {
-    type: [String],
-    default: []
-  }
+  member: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }]
 }, {
   timestamps: true
 });

@@ -1,4 +1,5 @@
 const User = require('../models/userModel');
+const Lead = require('../models/leadModel');
 const { encryptPassword, decryptPassword } = require('../utils/cryptoUtils');
 
 // @desc    Get all users (with pagination & search)
@@ -21,13 +22,68 @@ const getUsers = async (req, res) => {
         }
       : {};
 
+    const isAdmin = req.user && (
+      req.user.roles.includes('admin') || 
+      req.user.roles.includes('superadmin') || 
+      req.user.email === 'superadmin@gmail.com'
+    );
+    const isManager = req.user && req.user.roles.some(r => ['manager', 'main manager', 'maneger', 'main maneger'].includes(r.toLowerCase()));
+
+    if (!isAdmin && isManager) {
+      const Team = require('../models/teamModel');
+      const teams = await Team.find({ head: req.user._id });
+      let allowedUsers = [req.user._id.toString()];
+      teams.forEach(team => {
+        if (team.member) {
+          team.member.forEach(m => {
+            if (m) allowedUsers.push(m.toString());
+          });
+        }
+      });
+      allowedUsers = [...new Set(allowedUsers)];
+      filter._id = { $in: allowedUsers };
+    } else if (!isAdmin) {
+      // Regular users only see themselves? Or maybe they shouldn't fetch users at all.
+      // We will restrict to themselves to be safe
+      filter._id = req.user ? req.user._id : null;
+    }
+
     const [users, total] = await Promise.all([
       User.find(filter).select('-password').skip(skip).limit(limit).sort({ createdAt: -1 }),
       User.countDocuments(filter)
     ]);
 
+    const userIds = users.map(u => u._id);
+
+    const leadCounts = await Lead.aggregate([
+      { 
+        $match: { 
+          assgin: { $in: userIds },
+          isDeleted: { $ne: true },
+          orderStatus: { $ne: true }
+        } 
+      },
+      {
+        $group: {
+          _id: '$assgin',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const leadCountMap = {};
+    leadCounts.forEach(lc => {
+      if (lc._id) leadCountMap[lc._id.toString()] = lc.count;
+    });
+
+    const enrichedUsers = users.map(u => {
+      const obj = u.toObject();
+      obj.activeLeadCount = leadCountMap[obj._id.toString()] || 0;
+      return obj;
+    });
+
     res.status(200).json({
-      data: users,
+      data: enrichedUsers,
       total,
       page,
       limit,
@@ -164,7 +220,9 @@ const loginUser = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
-        roles: user.roles
+        roles: user.roles,
+        themeColor: user.themeColor,
+        darkMode: user.darkMode
       });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });

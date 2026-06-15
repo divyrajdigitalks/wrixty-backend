@@ -4,7 +4,7 @@ const { getUsers, getUser, createUser, updateUser, deleteUser } = require('../co
 const { protect } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
 
-router.get('/', getUsers);
+router.get('/', protect, getUsers);
 router.get('/:id', getUser);
 router.post('/', protect, upload.single('check_photo'), createUser);
 router.put('/:id', protect, upload.single('check_photo'), updateUser);

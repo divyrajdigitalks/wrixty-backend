@@ -14,7 +14,7 @@ const getTeams = async (req, res) => {
       : {};
 
     const [teams, total] = await Promise.all([
-      Team.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+      Team.find(filter).populate('head', 'name').populate('member', 'name').skip(skip).limit(limit).sort({ createdAt: -1 }),
       Team.countDocuments(filter)
     ]);
 
@@ -34,7 +34,7 @@ const getTeams = async (req, res) => {
 // @route   GET /api/teams/:id
 const getTeam = async (req, res) => {
   try {
-    const team = await Team.findById(req.params.id);
+    const team = await Team.findById(req.params.id).populate('head', 'name').populate('member', 'name');
     if (!team) return res.status(404).json({ message: 'Team not found' });
     res.status(200).json(team);
   } catch (error) {

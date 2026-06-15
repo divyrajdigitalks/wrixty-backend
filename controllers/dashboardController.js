@@ -15,6 +15,7 @@ const getDashboardStats = async (req, res) => {
       req.user.roles.includes('superadmin') || 
       req.user.email === 'superadmin@gmail.com'
     );
+    const isManager = req.user && req.user.roles.some(r => ['manager', 'main manager', 'maneger', 'main maneger'].includes(r.toLowerCase()));
 
     // Common Date Filters
     const dateFilter = {};
@@ -30,19 +31,30 @@ const getDashboardStats = async (req, res) => {
 
     // Lead query filters
     const leadQuery = { isDeleted: { $ne: true }, isRepeat: { $ne: true }, ...dateFilter };
-    if (!isAdmin) {
-      leadQuery.assgin = req.user._id;
-    }
-
     // Order query filters
     const orderQuery = { isDeleted: { $ne: true }, ...dateFilter };
-    if (!isAdmin) {
-      orderQuery.assginTo = req.user._id;
-    }
-
     // Return Order query filters
     const returnOrderQuery = { isDeleted: { $ne: true }, ...dateFilter };
-    if (!isAdmin) {
+
+    if (!isAdmin && isManager) {
+      const Team = require('../models/teamModel');
+      const teams = await Team.find({ head: req.user._id });
+      let allowedUsers = [req.user._id.toString()];
+      teams.forEach(team => {
+        if (team.member) {
+          team.member.forEach(m => {
+            if (m) allowedUsers.push(m.toString());
+          });
+        }
+      });
+      allowedUsers = [...new Set(allowedUsers)];
+      
+      leadQuery.assgin = { $in: allowedUsers };
+      orderQuery.assginTo = { $in: allowedUsers };
+      returnOrderQuery.assginTo = { $in: allowedUsers };
+    } else if (!isAdmin) {
+      leadQuery.assgin = req.user._id;
+      orderQuery.assginTo = req.user._id;
       returnOrderQuery.assginTo = req.user._id;
     }
 

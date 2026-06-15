@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { getLeads, getLeadById, createLead, updateLead, deleteLead, exportLeads, getLatestLeadByPhone } = require('../controllers/leadController');
+const { getLeads, getLeadById, createLead, updateLead, deleteLead, exportLeads, getLatestLeadByPhone, bulkReassignLeads } = require('../controllers/leadController');
 const { protect } = require('../middlewares/authMiddleware');
+
+router.route('/bulk-reassign')
+  .put(protect, bulkReassignLeads);
 
 router.route('/latest/:phone')
   .get(protect, getLatestLeadByPhone);

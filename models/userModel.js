@@ -33,6 +33,14 @@ const userSchema = mongoose.Schema({
     type: [String],
     default: []
   },
+  themeColor: {
+    type: String,
+    default: '#0F766E'
+  },
+  darkMode: {
+    type: Boolean,
+    default: false
+  },
   resetPasswordToken: String,
   resetPasswordExpire: Date
 }, {

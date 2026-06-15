@@ -5,7 +5,7 @@ const Customer = require('../models/customerModel');
 // @access  Public
 const getCustomers = async (req, res) => {
   try {
-    const { search = '' } = req.query;
+    const { search = '', page = 1, limit = 10 } = req.query;
     const query = {
       isDeleted: { $ne: true },
       ...(search ? {
@@ -16,10 +16,20 @@ const getCustomers = async (req, res) => {
       } : {})
     };
     
-    const customers = await Customer.find(query).sort({ createdAt: -1 });
+    const [customers, count] = await Promise.all([
+      Customer.find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit * 1),
+      Customer.countDocuments(query)
+    ]);
       
     res.status(200).json({
       data: customers,
+      total: count,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(count / limit)
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -14,8 +14,7 @@ const orderSchema = mongoose.Schema({
     ref: 'Lead'
   },
   name: {
-    type: String,
-    required: [true, 'Please add a customer name']
+    type: String
   },
   phone_number: {
     type: String,

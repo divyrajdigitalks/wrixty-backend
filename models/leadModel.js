@@ -41,7 +41,8 @@ const leadSchema = mongoose.Schema({
   transactionId: { type: String },
   isDeleted: { type: Boolean, default: false },
   isRepeat: { type: Boolean, default: false },
-  deleteDate: { type: Date }
+  deleteDate: { type: Date },
+  deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, {
   timestamps: true
 });

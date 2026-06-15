@@ -10,7 +10,7 @@ const generateToken = (id, email, roles) => {
   return jwt.sign(
     { id, email, roles },
     process.env.JWT_SECRET || 'wrixtysecret123',
-    { expiresIn: process.env.JWT_EXPIRE || '1d' }
+    // { expiresIn: process.env.JWT_EXPIRE || '1d' }
   );
 };
 

@@ -11,7 +11,7 @@ const returnOrderSchema = mongoose.Schema({
   },
   customerName: {
     type: String,
-    required: true
+    default: ""
   },
   phone_number: {
     type: String,
